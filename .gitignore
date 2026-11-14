@@ -1,0 +1,26 @@
+# Java
+backend/target/
+*.class
+*.log
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Local secrets
+.env
+.env.*
+!*.example
+application-local.yml
+
+# Project-local development tools and dependency caches
+tools/
+.m2/
+.npm-cache/
