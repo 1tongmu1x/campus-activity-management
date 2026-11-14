@@ -101,6 +101,13 @@ class AdminActivityIntegrationTest {
                 id, "Test A", "10000000000", "Demo");
         jdbc.update("INSERT INTO registration (activity_id, participant_name, phone, college) VALUES (?, ?, ?, ?)",
                 id, "Test B", "10000000001", "Demo");
+        mvc.perform(get(url + "/registrations")).andExpect(status().isUnauthorized());
+        mvc.perform(get(url + "/registrations").session(session).param("size", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].name").value("Test B"))
+                .andExpect(jsonPath("$[0].phone").value("10000000001"));
+        mvc.perform(get(url + "/registrations").session(session).param("size", "1").param("page", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].name").value("Test A"));
         input.put("capacity", 1);
         mvc.perform(put(url).session(session).header("X-CSRF-TOKEN", token).param("version", String.valueOf(version))
                 .contentType(MediaType.APPLICATION_JSON).content(input.toString())).andExpect(status().isConflict());
@@ -125,6 +132,7 @@ class AdminActivityIntegrationTest {
                 .param("version", finished.get("version").asText()))
                 .andExpect(status().isNoContent());
         mvc.perform(get(url).session(session)).andExpect(status().isNotFound());
+        mvc.perform(get(url + "/registrations").session(session)).andExpect(status().isNotFound());
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM registration WHERE activity_id = ?", Integer.class, id))
                 .isEqualTo(2);
 

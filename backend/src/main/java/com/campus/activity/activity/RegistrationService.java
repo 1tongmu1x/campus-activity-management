@@ -3,6 +3,7 @@ package com.campus.activity.activity;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,6 +27,22 @@ public class RegistrationService {
 
     PublicActivityView detail(String publicCode) {
         return new PublicActivityView(requirePublishedActivity(publicCode, now()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<RegistrationListItem> listForAdmin(long activityId, int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pagination");
+        }
+        if (!activities.find(activityId, now(), false).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Activity not found");
+        }
+        return jdbc.query("SELECT participant_name, phone, college, registered_at FROM registration "
+                        + "WHERE activity_id = ? AND status = 'REGISTERED' "
+                        + "ORDER BY registered_at DESC, id DESC LIMIT ? OFFSET ?",
+                (rs, row) -> new RegistrationListItem(rs.getString("participant_name"), rs.getString("phone"),
+                        rs.getString("college"), rs.getObject("registered_at", LocalDateTime.class)),
+                activityId, size, (long) page * size);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
