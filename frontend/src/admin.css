@@ -160,6 +160,13 @@ dialog.confirmation { width: min(450px, calc(100% - 28px)); }
 .span-two { grid-column: 1 / -1; }
 .dialog-actions { justify-content: flex-end; }
 .confirmation-text { line-height: 1.6; overflow-wrap: anywhere; }
+.row-actions, .share-actions { flex-wrap: wrap; }
+.share-actions a { text-decoration: none; }
+.share-qr { justify-self: center; max-width: 100%; height: auto; }
+.share-note { color: var(--muted); font-size: .875rem; line-height: 1.5; }
+dialog.roster-dialog { width: min(760px, calc(100% - 28px)); }
+.roster-table { min-width: 460px; }
+.roster-table td { overflow-wrap: anywhere; }
 
 @media (max-width: 1000px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }

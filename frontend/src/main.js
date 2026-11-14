@@ -1,4 +1,6 @@
 import { createApp } from 'vue'
-import App from './App.vue'
+import './admin.css'
 
-createApp(App).mount('#app')
+const publicPath = /^\/activities\/([^/]+)\/?$/.exec(window.location.pathname)
+const page = publicPath ? import('./PublicActivity.vue') : import('./App.vue')
+page.then(({ default: App }) => createApp(App, publicPath ? { code: publicPath[1] } : {}).mount('#app'))

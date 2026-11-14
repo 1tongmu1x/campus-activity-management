@@ -1,0 +1,20 @@
+.public-page { max-width: 760px; margin: auto; padding: 22px clamp(14px, 4vw, 36px) 48px; }
+.public-brand { display: flex; align-items: center; gap: 8px; color: var(--accent-dark); font-weight: 700; margin-bottom: 16px; }
+.public-page svg { width: 18px; height: 18px; flex: 0 0 18px; }
+.public-hero { background: #123b38; color: #f4fffc; border-radius: 16px; padding: clamp(20px, 6vw, 40px); display: grid; gap: 13px; }
+.public-hero p { color: #b8e5d8; font-weight: 700; }
+.public-hero h1 { line-height: 1.18; font-size: clamp(1.8rem, 6vw, 3rem); overflow-wrap: anywhere; }
+.public-state { justify-self: start; border: 1px solid #8ebcaf; border-radius: 100px; padding: 4px 10px; }
+.public-panel { background: white; margin-top: 14px; padding: clamp(16px, 5vw, 26px); border: 1px solid var(--line); border-radius: 13px; }
+.public-panel h2 { font-size: 1.2rem; margin: 0 0 14px; }
+.public-details dl { margin: 0 0 22px; display: grid; gap: 12px; }
+.public-details dt { display: flex; align-items: center; gap: 7px; color: var(--accent-dark); font-weight: 700; }
+.public-details dd { margin: 5px 0 0 25px; overflow-wrap: anywhere; }
+.public-description { line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.public-form { display: grid; gap: 13px; }
+.public-muted { color: var(--muted); font-size: .875rem; }
+.public-form button { justify-self: start; }
+@media (max-width: 520px) {
+  .public-form input { font-size: 1rem; }
+  .public-form button { justify-self: stretch; }
+}

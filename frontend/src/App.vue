@@ -2,13 +2,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { ArrowLeft, ArrowRight, Calendar, Collection, Plus, Refresh, SwitchButton } from '@element-plus/icons-vue'
 import { adminApi } from './adminApi'
-import './admin.css'
-
-const types = { LECTURE: '讲座', PRESENTATION: '宣讲会', CAREER_GUIDANCE: '就业指导', OTHER: '其他' }
-const statuses = {
-  DRAFT: '未发布', REGISTRATION_OPEN: '报名中', REGISTRATION_CLOSED: '已截止',
-  FINISHED: '已结束', CANCELLED: '已取消',
-}
+import { formatDate, statuses, typeLabel, types } from './activityLabels'
 const blankFilters = () => ({ type: '', status: '', from: '', to: '' })
 const blankForm = () => ({
   title: '', activityType: '', description: '', location: '',
@@ -31,13 +25,24 @@ const actionBusy = ref(false)
 const actionError = ref('')
 const editor = ref()
 const confirmation = ref()
+const shareDialog = ref()
+const rosterDialog = ref()
+const shareUrl = ref('')
+const qrUrl = ref('')
+const shareMessage = ref('')
+const shareTitle = ref('')
+const rosterTitle = ref('')
+const rosterId = ref(null)
+const roster = ref([])
+const rosterPage = ref(0)
+const rosterBusy = ref(false)
+const rosterMessage = ref('')
+const localShare = ['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)
 const editing = ref(null)
 const form = ref(blankForm())
 const pending = ref(null)
 const editorTitle = computed(() => editing.value ? '编辑活动' : '新建活动')
-const formatDate = (date) => date ? date.slice(0, 16).replace('T', ' ') : '—'
 const toSeconds = (date) => date.length === 16 ? `${date}:00` : date
-const typeLabel = (type) => types[type] || type
 
 function showLogin() {
   user.value = null
@@ -53,6 +58,7 @@ function requireLogin(error) {
   if (error.status !== 401) return false
   editor.value?.close()
   confirmation.value?.close()
+  rosterDialog.value?.close()
   showLogin()
   authError.value = '会话已结束，请重新登录。'
   return true
@@ -229,6 +235,59 @@ async function confirmAction() {
   }
 }
 
+async function openShare(row) {
+  shareTitle.value = row.title
+  shareUrl.value = new URL(`/activities/${row.publicCode}`, window.location.origin).href
+  const url = shareUrl.value
+  qrUrl.value = ''
+  shareMessage.value = ''
+  shareDialog.value.showModal()
+  try {
+    const { default: qr } = await import('qrcode')
+    const image = await qr.toDataURL(url, { width: 320, margin: 4 })
+    if (shareUrl.value === url) qrUrl.value = image
+  } catch {
+    if (shareUrl.value === url) shareMessage.value = '二维码生成失败，可以分享下面的链接。'
+  }
+}
+
+async function copyShare() {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    shareMessage.value = '链接已复制。'
+  } catch {
+    shareMessage.value = '请选中链接并复制。'
+  }
+}
+
+async function loadRoster(target) {
+  if (rosterBusy.value) return
+  rosterMessage.value = ''
+  rosterBusy.value = true
+  try {
+    const entries = await adminApi.registrations(rosterId.value, target)
+    if (target > rosterPage.value && entries.length === 0) {
+      rosterMessage.value = '已经是最后一页。'
+      return
+    }
+    roster.value = entries
+    rosterPage.value = target
+  } catch (error) {
+    if (!requireLogin(error)) rosterMessage.value = '名单加载失败，请重试。'
+  } finally {
+    rosterBusy.value = false
+  }
+}
+
+function openRoster(row) {
+  rosterTitle.value = row.title
+  rosterId.value = row.id
+  roster.value = []
+  rosterPage.value = 0
+  rosterDialog.value.showModal()
+  loadRoster(0)
+}
+
 onMounted(restoreSession)
 </script>
 
@@ -319,6 +378,8 @@ onMounted(restoreSession)
                 <td><div class="row-actions">
                   <button class="text-button" :disabled="actionBusy" @click="openEditor(row)">编辑</button>
                   <button v-if="row.status === 'DRAFT'" class="text-button" :disabled="actionBusy" @click="askAction(row, 'publish')">发布</button>
+                  <button v-if="row.publishedAt && row.status !== 'CANCELLED'" class="text-button" :disabled="actionBusy" @click="openShare(row)">分享报名</button>
+                  <button v-if="row.publishedAt" class="text-button" :disabled="actionBusy || rosterBusy" @click="openRoster(row)">报名名单</button>
                   <button class="text-button danger-text" :disabled="actionBusy" @click="askAction(row, 'delete')">删除</button>
                 </div></td>
               </tr>
@@ -336,6 +397,50 @@ onMounted(restoreSession)
         </div>
       </section>
     </main>
+
+    <dialog ref="shareDialog" class="confirmation" aria-labelledby="share-title">
+      <div class="dialog-content">
+        <h2 id="share-title">分享报名</h2>
+        <p class="confirmation-text">{{ shareTitle }}</p>
+        <img v-if="qrUrl" :src="qrUrl" class="share-qr" alt="活动报名二维码" width="220" height="220" />
+        <p v-if="localShare" class="share-note">当前链接仅本机可用。手机扫码时，请先用手机可访问的地址打开后台，再生成二维码。</p>
+        <label>报名链接<input :value="shareUrl" readonly @focus="$event.target.select()" /></label>
+        <p v-if="shareMessage" role="status">{{ shareMessage }}</p>
+        <div class="dialog-actions share-actions">
+          <button class="button quiet" @click="shareDialog.close()">关闭</button>
+          <button class="button secondary" @click="copyShare">复制链接</button>
+          <a class="button primary" :href="shareUrl" target="_blank" rel="noopener">打开报名页</a>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog ref="rosterDialog" class="roster-dialog" aria-labelledby="roster-title">
+      <div class="dialog-content">
+        <h2 id="roster-title">报名名单</h2>
+        <p class="confirmation-text">{{ rosterTitle }}</p>
+        <p v-if="rosterMessage" role="status">{{ rosterMessage }}</p>
+        <p v-if="rosterBusy" role="status">正在加载名单…</p>
+        <div v-else-if="roster.length" class="table-scroll" tabindex="0" aria-label="报名记录">
+          <table class="roster-table">
+            <thead><tr><th>姓名</th><th>手机号</th><th>学院</th><th>报名时间</th></tr></thead>
+            <tbody>
+              <tr v-for="entry in roster" :key="entry.phone">
+                <td>{{ entry.name }}</td><td class="date-cell">{{ entry.phone }}</td>
+                <td>{{ entry.college }}</td><td class="date-cell">{{ formatDate(entry.registeredAt) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else-if="!rosterMessage">暂无报名。</p>
+        <div class="dialog-actions share-actions">
+          <button class="button quiet" :disabled="rosterBusy || rosterPage === 0" @click="loadRoster(rosterPage - 1)">上一页</button>
+          <span>第 {{ rosterPage + 1 }} 页</span>
+          <button class="button quiet" :disabled="rosterBusy || roster.length < 20" @click="loadRoster(rosterPage + 1)">下一页</button>
+          <button class="button secondary" :disabled="rosterBusy" @click="loadRoster(rosterPage)">刷新</button>
+          <button class="button secondary" @click="rosterDialog.close()">关闭</button>
+        </div>
+      </div>
+    </dialog>
 
     <dialog ref="editor" aria-labelledby="editor-title" @cancel.prevent="!actionBusy && editor.close()">
       <form class="dialog-content" @submit.prevent="save">

@@ -70,6 +70,18 @@ class ActivityRepository {
                 .stream().findFirst();
     }
 
+    Optional<ActivityView> findPublishedByCode(String code, LocalDateTime now) {
+        return jdbc.query(SELECT_ACTIVITY + " AND a.public_code = :code AND a.status = 'PUBLISHED'",
+                new MapSqlParameterSource("code", code).addValue("now", now), VIEW_MAPPER)
+                .stream().findFirst();
+    }
+
+    boolean lockPublishedByCode(String code) {
+        return !jdbc.queryForList("SELECT id FROM activity WHERE public_code = :code "
+                        + "AND deleted_at IS NULL AND status = 'PUBLISHED' FOR UPDATE",
+                new MapSqlParameterSource("code", code), Long.class).isEmpty();
+    }
+
     long insert(ActivityInput input, String publicCode, LocalDateTime now, long adminId) {
         MapSqlParameterSource params = inputParameters(input)
                 .addValue("publicCode", publicCode).addValue("now", now).addValue("adminId", adminId);
