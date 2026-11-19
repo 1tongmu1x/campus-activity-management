@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { ArrowLeft, ArrowRight, Calendar, Collection, Plus, Refresh, SwitchButton } from '@element-plus/icons-vue'
 import { adminApi } from './adminApi'
+import AdminCheckInDialog from './AdminCheckInDialog.vue'
 import { formatDate, statuses, typeLabel, types } from './activityLabels'
 import { registrationUrl } from './publicOrigin'
 const blankFilters = () => ({ type: '', status: '', from: '', to: '' })
@@ -28,6 +29,7 @@ const editor = ref()
 const confirmation = ref()
 const shareDialog = ref()
 const rosterDialog = ref()
+const checkInDialog = ref()
 const shareUrl = ref('')
 const qrUrl = ref('')
 const shareMessage = ref('')
@@ -63,6 +65,7 @@ function requireLogin(error) {
   editor.value?.close()
   confirmation.value?.close()
   rosterDialog.value?.close()
+  checkInDialog.value?.close()
   showLogin()
   authError.value = '会话已结束，请重新登录。'
   return true
@@ -390,6 +393,7 @@ onMounted(restoreSession)
                   <button v-if="row.status === 'DRAFT'" class="text-button" :disabled="actionBusy" @click="askAction(row, 'publish')">发布</button>
                   <button v-if="row.publishedAt && row.status !== 'CANCELLED'" class="text-button" :disabled="actionBusy" @click="openShare(row)">分享报名</button>
                   <button v-if="row.publishedAt" class="text-button" :disabled="actionBusy || rosterBusy" @click="openRoster(row)">报名名单</button>
+                  <button v-if="row.publishedAt && row.status !== 'CANCELLED'" class="text-button" :disabled="actionBusy" @click="checkInDialog.show(row)">签到</button>
                   <button class="text-button danger-text" :disabled="actionBusy" @click="askAction(row, 'delete')">删除</button>
                 </div></td>
               </tr>
@@ -424,6 +428,8 @@ onMounted(restoreSession)
       </div>
     </dialog>
 
+    <AdminCheckInDialog ref="checkInDialog" @session-expired="requireLogin" />
+
     <dialog ref="rosterDialog" class="roster-dialog" aria-labelledby="roster-title">
       <div class="dialog-content">
         <h2 id="roster-title">报名名单</h2>
@@ -432,11 +438,16 @@ onMounted(restoreSession)
         <p v-if="rosterBusy" role="status">正在加载名单…</p>
         <div v-else-if="roster.length" class="table-scroll" tabindex="0" aria-label="报名记录">
           <table class="roster-table">
-            <thead><tr><th>姓名</th><th>手机号</th><th>学院</th><th>报名时间</th></tr></thead>
+            <thead><tr><th>姓名</th><th>手机号</th><th>学院</th><th>报名时间</th><th>签到</th></tr></thead>
             <tbody>
               <tr v-for="entry in roster" :key="entry.phone">
                 <td>{{ entry.name }}</td><td class="date-cell">{{ entry.phone }}</td>
                 <td>{{ entry.college }}</td><td class="date-cell">{{ formatDate(entry.registeredAt) }}</td>
+                <td>
+                  <span v-if="entry.checkedInAt" class="status-pill registration_open">已签到</span>
+                  <span v-else class="status-pill">未签到</span>
+                  <small v-if="entry.checkedInAt" class="date-cell">{{ formatDate(entry.checkedInAt) }}</small>
+                </td>
               </tr>
             </tbody>
           </table>

@@ -95,6 +95,8 @@ class ActivityRepository {
 
     void update(long id, ActivityInput input, LocalDateTime now) {
         jdbc.update("UPDATE activity SET title = :title, activity_type = :type, description = :description, "
+                + "check_in_code = CASE WHEN starts_at <> :startsAt OR ends_at <> :endsAt "
+                + "THEN NULL ELSE check_in_code END, "
                 + "starts_at = :startsAt, ends_at = :endsAt, location = :location, "
                 + "registration_deadline = :deadline, capacity = :capacity, version = version + 1, updated_at = :now "
                 + "WHERE id = :id", inputParameters(input).addValue("now", now).addValue("id", id));

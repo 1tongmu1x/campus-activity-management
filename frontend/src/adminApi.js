@@ -45,6 +45,9 @@ export const adminApi = {
   },
   get: (id) => request(`${activities}/${id}`),
   registrations: (id, page) => request(`${activities}/${id}/registrations?page=${page}&size=20`),
+  checkInStatus: (id) => request(`${activities}/${id}/check-in`),
+  openCheckIn: (id) => write(`${activities}/${id}/check-in/open`, 'POST'),
+  closeCheckIn: (id) => write(`${activities}/${id}/check-in/close`, 'POST'),
   create: (activity) => write(activities, 'POST', activity),
   update: (id, version, activity) =>
     write(`${activities}/${id}?version=${version}`, 'PUT', activity),
@@ -56,4 +59,9 @@ export const publicApi = {
   get: (code) => request(`/api/public/activities/${code}`),
   register: (code, participant) =>
     write(`/api/public/activities/${code}/registrations`, 'POST', participant, '/api/public/csrf'),
+}
+
+export const checkInApi = {
+  get: (code) => request(`/api/public/check-in/${code}`),
+  submit: (code, phone) => write(`/api/public/check-in/${code}`, 'POST', { phone }, '/api/public/csrf'),
 }

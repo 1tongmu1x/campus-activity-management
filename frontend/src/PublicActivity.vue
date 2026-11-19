@@ -1,9 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { Calendar, Location, Timer } from '@element-plus/icons-vue'
+import activityImage from './assets/activity.jpg'
+import locationImage from './assets/location.jpg'
+import timeImage from './assets/time.jpg'
 import { publicApi } from './adminApi'
 import { formatDate, statuses, typeLabel } from './activityLabels'
-import './public.css'
 
 const props = defineProps({ code: { type: String, required: true } })
 const activity = ref(null)
@@ -59,29 +60,55 @@ onMounted(load)
 
 <template>
   <main class="public-page">
-    <div class="public-brand"><Calendar aria-hidden="true" /> 高校学生活动</div>
+    <div class="public-brand">高校学生活动</div>
     <section v-if="loading" class="public-panel" role="status">正在加载活动…</section>
     <section v-else-if="loadError" class="public-panel" role="alert">{{ loadError }}</section>
     <template v-else-if="activity">
       <header class="public-hero">
-        <p>{{ typeLabel(activity.activityType) }}</p>
         <h1>{{ activity.title }}</h1>
-        <span class="public-state">{{ statuses[activity.status] }}</span>
+        <span class="public-state" :class="{ 'public-state-open': canRegister }">
+          {{ activity.status === 'REGISTRATION_OPEN' && activity.registrationFull ? '名额已满' : statuses[activity.status] }}
+        </span>
       </header>
 
       <section class="public-panel public-details" aria-label="活动信息">
-        <dl>
-          <div>
-            <dt><Calendar aria-hidden="true" />活动时间</dt>
-            <dd>{{ formatDate(activity.startsAt) }} 至 {{ formatDate(activity.endsAt) }}</dd>
+        <dl class="public-facts">
+          <div class="public-fact public-fact-activity">
+            <dt>
+              <span class="public-fact-art" aria-hidden="true">
+                <img :src="activityImage" alt="" width="58" height="58" />
+                <span>活动</span>
+              </span>
+              活动类型
+            </dt>
+            <dd>{{ typeLabel(activity.activityType) }}</dd>
           </div>
-          <div>
-            <dt><Location aria-hidden="true" />活动地点</dt>
+          <div class="public-fact public-fact-location">
+            <dt>
+              <span class="public-fact-art" aria-hidden="true">
+                <img :src="locationImage" alt="" width="58" height="58" />
+                <span>地点</span>
+              </span>
+              活动地点
+            </dt>
             <dd>{{ activity.location }}</dd>
           </div>
-          <div>
-            <dt><Timer aria-hidden="true" />报名截止</dt>
-            <dd>{{ formatDate(activity.registrationDeadline) }}（北京时间）</dd>
+          <div class="public-fact public-fact-time">
+            <dt>
+              <span class="public-fact-art" aria-hidden="true">
+                <img :src="timeImage" alt="" width="58" height="58" />
+                <span>时间</span>
+              </span>
+              活动时间（北京时间）
+            </dt>
+            <dd>
+              <span class="public-date-range">
+                <time :datetime="activity.startsAt">{{ formatDate(activity.startsAt) }}</time>
+                <span>至</span>
+                <time :datetime="activity.endsAt">{{ formatDate(activity.endsAt) }}</time>
+              </span>
+              <span class="public-deadline">报名截止 <time :datetime="activity.registrationDeadline">{{ formatDate(activity.registrationDeadline) }}</time></span>
+            </dd>
           </div>
         </dl>
         <h2>活动简介</h2>

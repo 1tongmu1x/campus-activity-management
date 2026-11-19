@@ -1,20 +1,41 @@
-# 公网报名部署
+# 公网报名与签到部署
 
-这套配置把 Vue 生产构建、Spring Boot 和 MySQL 放在同一台 Linux 云服务器上。Caddy 在两个域名上自动配置 HTTPS。报名链接使用公开域名，管理员从后台域名工作。现有 MySQL 表可继续使用，云端默认创建独立数据库。
+## Windows 临时演示
+
+先按[本机试用步骤](06-admin-web.md)配置 MySQL 并启动后端，确认 `http://127.0.0.1:8080/api/health` 正常。安装前端依赖，并将以下便携工具放到项目目录。工具文件单独下载，仓库提供启动脚本。
+
+| 文件 | 获取方式 |
+| --- | --- |
+| `tools/node-v26.13.1-win-x64/node.exe` | 从 [Node.js 发行目录](https://nodejs.org/dist/v26.13.1/) 下载对应的 Windows x64 压缩包并解压 |
+| `tools/deployment-validation/caddy.exe` | 从 [Caddy 官方下载页](https://caddyserver.com/download) 获取 Windows amd64 可执行文件 |
+| `tools/cloudflared/cloudflared.exe` | 从 [Cloudflare 官方下载页](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/) 获取 Windows 版本，保存为 `cloudflared.exe` |
+
+另开一个 PowerShell，在项目根目录运行：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\start-public-demo.ps1
+```
+
+看到 `Admin page` 后，在电脑浏览器打开 `http://127.0.0.1:18182/`。通过「分享报名」或「签到」取得完整的临时公网链接，手机可扫码验证。保持后端和演示脚本运行。按下 **Ctrl+C** 停止演示后，临时地址失效。[Cloudflare Quick Tunnel 说明](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)
+
+## Linux 云服务器部署
+
+这套配置把 Vue 生产构建、Spring Boot 和 MySQL 放在同一台 Linux 云服务器上。Caddy 在两个域名上自动配置 HTTPS。报名和签到链接使用公开域名，管理员从后台域名工作。现有 MySQL 表可继续使用，云端默认创建独立数据库。
 
 | 入口 | 用途 |
 | --- | --- |
 | `https://signup.example.com/activities/<活动公开编号>` | 参与者查看活动和报名 |
+| `https://signup.example.com/check-in/<签到编号>` | 到场的已报名者签到 |
 | `https://admin.example.com/` | 管理员登录、发布活动、查看名单，仅放行配置的来源 IP |
 | 容器内 MySQL | 保存活动与报名记录，宿主机不发布数据库端口 |
 
-## 准备服务器
+### 准备服务器
 
 - 准备一台安装 Docker Engine 和 Compose 的 Linux 服务器。将两个域名的 DNS 指向服务器，开放 TCP 80 和 443 给 Caddy。若配置了 AAAA，也要确保服务器的 IPv6 可达。
 - 此配置按 Caddy 直连公网设计，后台白名单检查 TCP 对端地址。DNS 服务商如提供代理功能，请用仅 DNS 模式。需要 CDN、负载均衡或共享出口时，先重新确认来源识别方案。动态 IP 管理员可使用固定出口或 VPN，更新白名单后重新创建网关容器。
 - 实例先使用模拟活动和模拟联系方式。Spring Boot 2.7 已结束开源维护，正式收集个人数据前应升级到仍受支持的版本，并在目标服务器重新验证注册、登录和并发测试。还需确认反刷阈值、备份与恢复流程，以及页面告知中的联系方式、数据用途和保留期限。先用移动数据验证微信打开与提交。
 
-## 配置并启动
+### 配置并启动
 
 在服务器的仓库根目录复制 `.env.example` 为 `.env`，填写两个不同的 DNS 主机名，以及管理员公网出口的 IP 或 CIDR。管理员地址请写明确的 IP 或尽可能小的网段。域名和管理员用户名可写入 `.env`，密码使用下面的独立文件。
 
@@ -46,13 +67,14 @@ MySQL 和后端健康检查通过后，网关才会启动。需要排查时运�
 
 MySQL 密码文件只在新卷初始化时设置账号密码。已有数据库的账号轮换要在 MySQL 里同步更新。后台启动时只在管理员表为空时创建第一个管理员。
 
-## 从异地验证
+### 从异地验证
 
 1. 从白名单 IP 打开后台域名登录，创建并发布一条名额为 1 的测试活动。
 2. 点 **分享报名**，确认链接和二维码使用报名域名。手机断开 Wi-Fi，用移动数据从微信打开链接，提交模拟报名。
 3. 管理端刷新后，名单出现报名记录且人数变成 1。再次使用不同手机号时，活动应显示已满。
-4. 用手机访问报名域名的 `/api/admin/auth/me` 和后台域名首页。公网域名应返回 404，来源未获授权的后台请求应返回 403。
+4. 按[签到操作说明](09-check-in.md)开启签到，用手机扫码签到，并核对后台名单。
+5. 用手机访问报名域名的 `/api/admin/auth/me` 和后台域名首页。公网域名应返回 404，来源未获授权的后台请求应返回 403。
 
-数据库数据和 HTTPS 证书保存在 Compose 命名卷。升级代码前，先备份数据库并确认能够还原。已有 V1、V2 迁移文件保留，表结构变化用新的 Flyway 迁移版本记录。移除容器时保留数据卷。
+数据库数据和 HTTPS 证书保存在 Compose 命名卷。升级代码前，先备份数据库并确认能够还原。表结构变化用新的 Flyway 迁移文件记录。移除容器时保留数据卷。
 
 参考 [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)、[Docker Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/) 和 [Spring Boot 2.7 维护说明](https://spring.io/blog/2023/11/23/spring-boot-2-7-18-available-now/)。

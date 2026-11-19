@@ -37,11 +37,13 @@ public class RegistrationService {
         if (!activities.find(activityId, now(), false).isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Activity not found");
         }
-        return jdbc.query("SELECT participant_name, phone, college, registered_at FROM registration "
-                        + "WHERE activity_id = ? AND status = 'REGISTERED' "
-                        + "ORDER BY registered_at DESC, id DESC LIMIT ? OFFSET ?",
+        return jdbc.query("SELECT r.participant_name, r.phone, r.college, r.registered_at, c.checked_in_at "
+                        + "FROM registration r LEFT JOIN check_in c ON r.id = c.registration_id "
+                        + "WHERE r.activity_id = ? AND r.status = 'REGISTERED' "
+                        + "ORDER BY r.registered_at DESC, r.id DESC LIMIT ? OFFSET ?",
                 (rs, row) -> new RegistrationListItem(rs.getString("participant_name"), rs.getString("phone"),
-                        rs.getString("college"), rs.getObject("registered_at", LocalDateTime.class)),
+                        rs.getString("college"), rs.getObject("registered_at", LocalDateTime.class),
+                        rs.getObject("checked_in_at", LocalDateTime.class)),
                 activityId, size, (long) page * size);
     }
 

@@ -14,11 +14,11 @@
 	import browser_headers
 	encode zstd gzip
 
-	@registration {
+	@public_write {
 		method POST
-		path_regexp registration ^/api/public/activities/[0-9a-f]{12}/registrations$
+		path_regexp public_write ^/api/public/(activities/[0-9a-f]{12}/registrations|check-in/[0-9a-f]{32})$
 	}
-	handle @registration {
+	handle @public_write {
 		request_body {
 			max_size 4KB
 		}
@@ -27,7 +27,7 @@
 
 	@public_read {
 		method GET
-		path_regexp public_read ^/api/public/(csrf|activities/[0-9a-f]{12})$
+		path_regexp public_read ^/api/public/(csrf|activities/[0-9a-f]{12}|check-in/[0-9a-f]{32})$
 	}
 	handle @public_read {
 		reverse_proxy {$BACKEND_UPSTREAM:backend:8080}
@@ -44,7 +44,7 @@
 
 	@poster {
 		method GET HEAD
-		path_regexp poster ^/activities/[0-9a-f]{12}/?$
+		path_regexp poster ^/(activities/[0-9a-f]{12}|check-in/[0-9a-f]{32})/?$
 	}
 	handle @poster {
 		root * {$WEB_ROOT:/srv}
