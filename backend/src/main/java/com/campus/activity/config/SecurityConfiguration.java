@@ -24,6 +24,7 @@ public class SecurityConfiguration {
             .authorizeRequests()
                 .requestMatchers(request -> request.getDispatcherType() == DispatcherType.ERROR).permitAll()
                 .antMatchers(HttpMethod.GET, "/api/health", "/api/admin/auth/csrf").permitAll()
+                .antMatchers(HttpMethod.GET, "/api/public/csrf").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/public/activities/*").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/public/activities/*/registrations").permitAll()
                 .antMatchers("/api/admin/**").hasRole("ADMIN")

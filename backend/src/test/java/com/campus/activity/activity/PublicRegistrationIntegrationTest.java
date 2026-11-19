@@ -106,7 +106,7 @@ class PublicRegistrationIntegrationTest {
     }
 
     private MvcResult register(String code, String phone) throws Exception {
-        MvcResult csrf = mvc.perform(get("/api/admin/auth/csrf")).andExpect(status().isOk()).andReturn();
+        MvcResult csrf = mvc.perform(get("/api/public/csrf")).andExpect(status().isOk()).andReturn();
         MockHttpSession session = (MockHttpSession) csrf.getRequest().getSession(false);
         String token = json.readTree(csrf.getResponse().getContentAsString()).get("token").asText();
         return mvc.perform(post(path(code) + "/registrations").session(session)

@@ -1,0 +1,89 @@
+name: campus-activity
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/gateway.Dockerfile
+      args:
+        PUBLIC_HOST: ${PUBLIC_HOST:?Set PUBLIC_HOST in .env}
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?Set PUBLIC_HOST in .env}
+      ADMIN_HOST: ${ADMIN_HOST:?Set ADMIN_HOST in .env}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:?Set ADMIN_ALLOWED_IPS in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [edge]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    environment:
+      DB_URL: "jdbc:mysql://db:3306/campus_activity?serverTimezone=Asia/Shanghai&sslMode=REQUIRED"
+      DB_USERNAME: campus_app
+      SPRING_CONFIG_IMPORT: "configtree:/run/secrets/"
+      SESSION_COOKIE_SECURE: "true"
+      CAMPUS_ADMIN_USERNAME: ${CAMPUS_ADMIN_USERNAME:-campus_admin}
+    secrets:
+      - source: db_password
+        target: spring.datasource.password
+      - source: admin_password
+        target: campus.admin.password
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 45s
+    networks: [edge, database]
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: campus_activity
+      MYSQL_USER: campus_app
+      MYSQL_ROOT_HOST: localhost
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets: [db_password, db_root_password]
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$(cat /run/secrets/db_password) mysql --protocol=TCP -h 127.0.0.1 -u campus_app -D campus_activity -Nse 'SELECT 1'"]
+      interval: 8s
+      timeout: 4s
+      retries: 12
+      start_period: 45s
+    networks: [database]
+    restart: unless-stopped
+
+networks:
+  edge:
+  database:
+    internal: true
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  db_password:
+    file: ./docker/secrets/db_password
+  db_root_password:
+    file: ./docker/secrets/db_root_password
+  admin_password:
+    file: ./docker/secrets/admin_password

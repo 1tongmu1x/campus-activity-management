@@ -35,6 +35,7 @@
 ## M5：开源与交付
 
 - [ ] 自动化测试和 CI
-- [ ] Docker Compose 部署
+- [x] Docker Compose 和公网入口配置
+- [ ] 云端 HTTPS 与手机移动网络验收
 - [ ] 完善 README、接口文档、演示截图
 - [ ] 发布 GitHub Release 与课程答辩材料

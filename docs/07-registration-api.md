@@ -5,7 +5,7 @@
 | 请求 | 返回 |
 | --- | --- |
 | `GET /api/public/activities/{publicCode}` | 200，活动名称、类型、简介、地点、时间、状态及 `registrationFull` |
-| `GET /api/admin/auth/csrf` | 200，提供匿名会话也可使用的 CSRF 令牌，保存服务器返回的 Cookie |
+| `GET /api/public/csrf` | 200，提供匿名报名会话的 CSRF 令牌，保存服务器返回的 Cookie |
 | `POST /api/public/activities/{publicCode}/registrations` | 201，报名成功，响应体为空 |
 | `GET /api/admin/activities/{id}/registrations?page=0&size=20` | 200，管理员可分页查看有效报名记录，包括姓名、手机号、学院和报名时间 |
 

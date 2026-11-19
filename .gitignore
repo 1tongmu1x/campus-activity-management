@@ -19,6 +19,7 @@ Thumbs.db
 .env.*
 !*.example
 application-local.yml
+docker/secrets/
 
 # Project-local development tools and dependency caches
 tools/

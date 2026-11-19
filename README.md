@@ -2,15 +2,15 @@
 
 面向高校讲座、宣讲会、就业指导会等活动的发布、报名和签到管理系统。普通参与者无需注册，可通过公开链接或二维码完成报名和签到；活动管理员负责维护活动与查看数据。
 
-> 当前状态：管理员登录与活动管理后台已实现。参见 [本机试用步骤](docs/06-admin-web.md) 和 [活动管理 API](docs/05-admin-api.md)。
+> 当前状态：活动管理后台和公开报名已实现。参见 [本机试用步骤](docs/06-admin-web.md)、[报名接口](docs/07-registration-api.md) 和 [公网部署指南](docs/08-public-deployment.md)。
 
 ## 功能范围
 
 - 管理员登录、活动创建、编辑、删除、发布与筛选
 - 公开活动详情和报名页面
 - 报名人数上限、报名截止时间、手机号重复报名等校验
-- 报名二维码与现场签到
-- 报名/签到名单及统计（后续迭代）
+- 报名二维码、报名名单及人数统计
+- 现场签到与签到统计（后续迭代）
 
 详细需求见 [docs/01-requirements.md](docs/01-requirements.md)，开发路线见 [docs/03-roadmap.md](docs/03-roadmap.md)。
 
@@ -19,7 +19,7 @@
 - 后端：Java 8、Spring Boot 2.7、Spring Security、Spring JDBC、Flyway、MySQL 8
 - 前端：Vue 3、Vite、Element Plus 图标
 - 文档：OpenAPI / Swagger（将在接口开发时接入）
-- 部署：Docker Compose（后续）
+- 部署：Docker Compose、Caddy
 
 ## 目录说明
 
@@ -27,7 +27,7 @@
 ├── backend/       # Spring Boot API
 ├── frontend/      # Vue 3 前端
 ├── docs/          # 需求、架构、数据库与接口文档
-├── docker/        # 容器化部署配置（后续）
+├── docker/        # 镜像构建与网关配置
 └── .github/       # GitHub 协作模板（后续完善）
 ```
 

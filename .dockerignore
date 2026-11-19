@@ -1,0 +1,17 @@
+**
+!backend/
+!backend/pom.xml
+!backend/src/
+!backend/src/**
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/src/
+!frontend/src/**
+!frontend/public/
+!frontend/public/**
+!frontend/vite.config.js
+!docker/
+!docker/Caddyfile
+!docker/*.Dockerfile

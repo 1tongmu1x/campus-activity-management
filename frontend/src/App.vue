@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { ArrowLeft, ArrowRight, Calendar, Collection, Plus, Refresh, SwitchButton } from '@element-plus/icons-vue'
 import { adminApi } from './adminApi'
 import { formatDate, statuses, typeLabel, types } from './activityLabels'
+import { registrationUrl } from './publicOrigin'
 const blankFilters = () => ({ type: '', status: '', from: '', to: '' })
 const blankForm = () => ({
   title: '', activityType: '', description: '', location: '',
@@ -37,7 +38,10 @@ const roster = ref([])
 const rosterPage = ref(0)
 const rosterBusy = ref(false)
 const rosterMessage = ref('')
-const localShare = ['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)
+const localShare = computed(() => {
+  if (!shareUrl.value) return false
+  return ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(shareUrl.value).hostname)
+})
 const editing = ref(null)
 const form = ref(blankForm())
 const pending = ref(null)
@@ -236,8 +240,14 @@ async function confirmAction() {
 }
 
 async function openShare(row) {
+  try {
+    shareUrl.value = registrationUrl(row.publicCode, window.location.origin).href
+  } catch {
+    listError.value = '公网报名地址配置不正确，请检查部署设置。'
+    return
+  }
+  listError.value = ''
   shareTitle.value = row.title
-  shareUrl.value = new URL(`/activities/${row.publicCode}`, window.location.origin).href
   const url = shareUrl.value
   qrUrl.value = ''
   shareMessage.value = ''

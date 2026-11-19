@@ -21,8 +21,8 @@ async function request(path, init) {
   }
 }
 
-async function write(path, method, body) {
-  const { headerName, token } = await request(`${auth}/csrf`)
+async function write(path, method, body, csrfPath = `${auth}/csrf`) {
+  const { headerName, token } = await request(csrfPath)
   const headers = { [headerName]: token }
   if (body != null && !(body instanceof URLSearchParams)) {
     headers['Content-Type'] = 'application/json'
@@ -54,5 +54,6 @@ export const adminApi = {
 
 export const publicApi = {
   get: (code) => request(`/api/public/activities/${code}`),
-  register: (code, participant) => write(`/api/public/activities/${code}/registrations`, 'POST', participant),
+  register: (code, participant) =>
+    write(`/api/public/activities/${code}/registrations`, 'POST', participant, '/api/public/csrf'),
 }

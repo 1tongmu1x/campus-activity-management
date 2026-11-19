@@ -1,0 +1,88 @@
+{
+	admin off
+}
+
+(browser_headers) {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Frame-Options DENY
+	}
+}
+
+{$PUBLIC_HOST} {
+	import browser_headers
+	encode zstd gzip
+
+	@registration {
+		method POST
+		path_regexp registration ^/api/public/activities/[0-9a-f]{12}/registrations$
+	}
+	handle @registration {
+		request_body {
+			max_size 4KB
+		}
+		reverse_proxy {$BACKEND_UPSTREAM:backend:8080}
+	}
+
+	@public_read {
+		method GET
+		path_regexp public_read ^/api/public/(csrf|activities/[0-9a-f]{12})$
+	}
+	handle @public_read {
+		reverse_proxy {$BACKEND_UPSTREAM:backend:8080}
+	}
+
+	@assets {
+		method GET HEAD
+		path /assets/*
+	}
+	handle @assets {
+		root * {$WEB_ROOT:/srv}
+		file_server
+	}
+
+	@poster {
+		method GET HEAD
+		path_regexp poster ^/activities/[0-9a-f]{12}/?$
+	}
+	handle @poster {
+		root * {$WEB_ROOT:/srv}
+		rewrite * /index.html
+		file_server
+	}
+
+	handle {
+		respond 404
+	}
+}
+
+{$ADMIN_HOST} {
+	import browser_headers
+	encode zstd gzip
+
+	@admin_source remote_ip {$ADMIN_ALLOWED_IPS:127.0.0.1 ::1}
+	handle @admin_source {
+		handle /api/admin/* {
+			reverse_proxy {$BACKEND_UPSTREAM:backend:8080}
+		}
+
+		handle /assets/* {
+			root * {$WEB_ROOT:/srv}
+			file_server
+		}
+
+		handle / {
+			root * {$WEB_ROOT:/srv}
+			file_server
+		}
+
+		handle {
+			respond 404
+		}
+	}
+
+	handle {
+		respond 403
+	}
+}
